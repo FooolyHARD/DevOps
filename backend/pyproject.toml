@@ -1,0 +1,31 @@
+[project]
+name = "marine-toxicity-api"
+version = "0.1.0"
+description = "REST API for marine organism toxicity simulation"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.14.1",
+    "email-validator>=2.2.0",
+    "fastapi>=0.115.11",
+    "passlib[bcrypt]>=1.7.4",
+    "psycopg[binary]>=3.2.6",
+    "pydantic-settings>=2.8.1",
+    "pyjwt>=2.10.1",
+    "python-multipart>=0.0.20",
+    "sqlalchemy>=2.0.38",
+    "uvicorn[standard]>=0.34.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=8.3.5",
+]
+
+[build-system]
+requires = ["setuptools>=75.8.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+pythonpath = ["app"]
+testpaths = ["app/tests"]
