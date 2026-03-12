@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://postgres:postgres@db:5432/marine_toxicity"
     bootstrap_admin_username: str = "admin"
     bootstrap_admin_email: str = "admin@example.com"
-    bootstrap_admin_password: str = "admin12345"
+    bootstrap_admin_password: str = "123"
     cors_origins: list[str] = ["http://localhost:5173"]
 
     model_config = SettingsConfigDict(
