@@ -37,6 +37,20 @@ BODY_MULTIPLIER = {
     BodyLocation.BACK: 0.95,
 }
 
+TOXIN_WEIGHTS = {
+    "neurotoxicity": 1.2,
+    "cytotoxicity": 1.0,
+    "pain_intensity": 0.8,
+    "systemic_factor": 1.0,
+}
+
+EXPOSURE_WEIGHT = 2.0
+AREA_WEIGHT = 2.5
+DURATION_WEIGHT = 2.0
+ORGANISM_FACTOR = 0.7
+DAMAGE_FACTOR = 0.7
+LOCATION_FACTOR = 0.5
+
 
 def _risk_level(score: float) -> RiskLevel:
     if score < 35:
@@ -50,19 +64,19 @@ def _risk_level(score: float) -> RiskLevel:
 
 def calculate_risk(payload, toxin_type) -> RiskResult:
     toxin_component = (
-        toxin_type.neurotoxicity * 2.8
-        + toxin_type.cytotoxicity * 2.5
-        + toxin_type.pain_intensity * 1.7
-        + toxin_type.systemic_factor * 2.3
+        toxin_type.neurotoxicity * TOXIN_WEIGHTS["neurotoxicity"]
+        + toxin_type.cytotoxicity * TOXIN_WEIGHTS["cytotoxicity"]
+        + toxin_type.pain_intensity * TOXIN_WEIGHTS["pain_intensity"]
+        + toxin_type.systemic_factor * TOXIN_WEIGHTS["systemic_factor"]
     )
-    exposure_component = payload.exposure_level**1.7 * 4.9
-    area_component = log1p(payload.contact_area_cm2) * 5.6
-    duration_component = log1p(payload.contact_duration_min) * 4.2
-    age_component = 12 if payload.victim_age <= 12 else 8 if payload.victim_age >= 65 else 0
-    allergy_component = 18 if payload.has_allergy else 0
-    organism_component = toxin_component * (ORGANISM_MULTIPLIER[payload.organism_type] - 1)
-    damage_component = toxin_component * (DAMAGE_MULTIPLIER[payload.damage_category] - 1)
-    location_component = toxin_component * (BODY_MULTIPLIER[payload.body_location] - 1)
+    exposure_component = payload.exposure_level**1.4 * EXPOSURE_WEIGHT
+    area_component = log1p(payload.contact_area_cm2) * AREA_WEIGHT
+    duration_component = log1p(payload.contact_duration_min) * DURATION_WEIGHT
+    age_component = 10 if payload.victim_age <= 12 else 7 if payload.victim_age >= 65 else 0
+    allergy_component = 12 if payload.has_allergy else 0
+    organism_component = toxin_component * (ORGANISM_MULTIPLIER[payload.organism_type] - 1) * ORGANISM_FACTOR
+    damage_component = toxin_component * (DAMAGE_MULTIPLIER[payload.damage_category] - 1) * DAMAGE_FACTOR
+    location_component = toxin_component * (BODY_MULTIPLIER[payload.body_location] - 1) * LOCATION_FACTOR
 
     raw_score = (
         toxin_component

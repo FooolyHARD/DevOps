@@ -20,7 +20,7 @@ services:
       context: ./backend
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/marine_toxicity
-      SECRET_KEY: dev-super-secret-key
+      SECRET_KEY: dev-super-secret-key-that-is-longer-than-32-bytes-for-sha256
       BOOTSTRAP_ADMIN_USERNAME: admin
       BOOTSTRAP_ADMIN_EMAIL: admin@example.com
       BOOTSTRAP_ADMIN_PASSWORD: admin12345

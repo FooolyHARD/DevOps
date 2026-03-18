@@ -1,5 +1,42 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
 
+function getErrorMessage(data) {
+  if (!data) {
+    return "Ошибка запроса";
+  }
+  const detail = data.detail ?? data;
+  if (typeof detail === "string") {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (typeof item === "string") {
+          return item;
+        }
+        if (item && typeof item === "object") {
+          if (item.msg) {
+            if (Array.isArray(item.loc) && item.loc.length > 0) {
+              const field = item.loc[item.loc.length - 1];
+              return `${field}: ${item.msg}`;
+            }
+            return item.msg;
+          }
+          return JSON.stringify(item);
+        }
+        return String(item);
+      })
+      .join(", ");
+  }
+  if (detail && typeof detail === "object") {
+    if (detail.msg) {
+      return detail.msg;
+    }
+    return JSON.stringify(detail);
+  }
+  return "Ошибка запроса";
+}
+
 async function request(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     headers: {
@@ -17,7 +54,7 @@ async function request(path, options = {}) {
 
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data.detail || "Ошибка запроса");
+    throw new Error(getErrorMessage(data));
   }
   return data;
 }

@@ -36,7 +36,14 @@ export function AuthPanel({
         )}
         <label>
           Пароль
-          <input name="password" type="password" value={authForm.password} onChange={onChange} required />
+          <input
+            name="password"
+            type="password"
+            value={authForm.password}
+            onChange={onChange}
+            minLength={authMode === "register" ? 8 : undefined}
+            required
+          />
         </label>
         {authError ? <p className="error-text">{authError}</p> : null}
         <button className="primary-button" type="submit">

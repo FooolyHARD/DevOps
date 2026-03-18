@@ -2,7 +2,6 @@ const initialForm = {
   title: "Новый сценарий",
   toxin_type_id: "",
   organism_type: "jellyfish",
-  exposure_level: 3,
   damage_category: "local",
   contact_area_cm2: 20,
   contact_duration_min: 10,
@@ -23,6 +22,7 @@ export function ScenarioForm({
   damageCategories,
   bodyLocations,
   preview,
+  error,
   onChange,
   onSubmit,
   onPreview,
@@ -68,11 +68,6 @@ export function ScenarioForm({
               </option>
             ))}
           </select>
-        </label>
-        <label>
-          Степень воздействия
-          <input name="exposure_level" type="range" min="1" max="5" value={form.exposure_level} onChange={onChange} />
-          <span>{form.exposure_level} / 5</span>
         </label>
         <label>
           Категория поражения
@@ -123,6 +118,7 @@ export function ScenarioForm({
         <button className="primary-button full" type="submit">
           Сохранить сценарий
         </button>
+        {error ? <div className="error-banner full">{error}</div> : null}
       </form>
 
       {preview ? (

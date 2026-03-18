@@ -7,7 +7,7 @@ class ScenarioBase(BaseModel):
     title: str = Field(min_length=3, max_length=150)
     toxin_type_id: int
     organism_type: str
-    exposure_level: int = Field(ge=1, le=5)
+    exposure_level: int = Field(default=1, ge=1, le=5)
     damage_category: str
     contact_area_cm2: float = Field(gt=0, le=2000)
     contact_duration_min: int = Field(ge=1, le=1440)
@@ -43,6 +43,7 @@ class ScenarioRead(ScenarioBase):
     risk_level: str
     risk_summary: str
     recommendations: str
+    toxin_type_name: str | None = None
     created_at: datetime
     updated_at: datetime
 

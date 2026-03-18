@@ -68,7 +68,7 @@ class Scenario(Base):
     toxin_type_id: Mapped[int] = mapped_column(ForeignKey("toxin_types.id"))
     title: Mapped[str] = mapped_column(String(150))
     organism_type: Mapped[OrganismType] = mapped_column(SqlEnum(OrganismType))
-    exposure_level: Mapped[int] = mapped_column(Integer)
+    exposure_level: Mapped[int] = mapped_column(Integer, default=1)
     damage_category: Mapped[DamageCategory] = mapped_column(SqlEnum(DamageCategory))
     contact_area_cm2: Mapped[float] = mapped_column(Float)
     contact_duration_min: Mapped[int] = mapped_column(Integer)
@@ -87,3 +87,9 @@ class Scenario(Base):
 
     user = relationship("User")
     toxin_type: Mapped[ToxinType] = relationship(back_populates="scenarios")
+
+    @property
+    def toxin_type_name(self) -> str | None:
+        if self.toxin_type is None:
+            return None
+        return self.toxin_type.name

@@ -9,7 +9,6 @@ function normalizeScenarioForm(form) {
   return {
     ...form,
     toxin_type_id: Number(form.toxin_type_id),
-    exposure_level: Number(form.exposure_level),
     contact_area_cm2: Number(form.contact_area_cm2),
     contact_duration_min: Number(form.contact_duration_min),
     victim_age: Number(form.victim_age),
@@ -22,6 +21,7 @@ export default function App() {
   const [authError, setAuthError] = useState("");
   const [token, setToken] = useState(localStorage.getItem("token") || "");
   const [user, setUser] = useState(null);
+  const [activeSection, setActiveSection] = useState("user");
   const [organisms, setOrganisms] = useState([]);
   const [damageCategories, setDamageCategories] = useState([]);
   const [bodyLocations, setBodyLocations] = useState([]);
@@ -65,6 +65,12 @@ export default function App() {
       });
   }, [token]);
 
+  useEffect(() => {
+    if (!user?.is_admin) {
+      setActiveSection("user");
+    }
+  }, [user]);
+
   const handleAuthChange = (event) => {
     setAuthForm((current) => ({ ...current, [event.target.name]: event.target.value }));
   };
@@ -78,6 +84,7 @@ export default function App() {
       }
       return next;
     });
+    setAppError("");
   };
 
   const handleToxinChange = (event) => {
@@ -166,7 +173,6 @@ export default function App() {
     <div className="app-shell">
       <header className="hero">
         <div>
-          <p className="eyebrow">REST-проект</p>
           <h1>Симулятор токсичности морских организмов</h1>
           <p className="hero-text">
             Учебная система для моделирования контакта с медузами и ядовитыми рыбами, оценки риска и управления справочником токсинов.
@@ -176,6 +182,16 @@ export default function App() {
           <div className="user-card">
             <strong>{user.username}</strong>
             <span>{user.is_admin ? "Администратор" : "Пользователь"}</span>
+            {user.is_admin ? (
+              <div className="segmented">
+                <button className={activeSection === "user" ? "active" : ""} onClick={() => setActiveSection("user")}>
+                  Пользователь
+                </button>
+                <button className={activeSection === "admin" ? "active" : ""} onClick={() => setActiveSection("admin")}>
+                  Админ-панель
+                </button>
+              </div>
+            ) : null}
             <button
               className="ghost-button"
               onClick={() => {
@@ -190,8 +206,6 @@ export default function App() {
         ) : null}
       </header>
 
-      {appError ? <div className="error-banner">{appError}</div> : null}
-
       {!token ? (
         <AuthPanel
           authMode={authMode}
@@ -203,27 +217,34 @@ export default function App() {
         />
       ) : (
         <main className="dashboard">
-          <ScenarioForm
-            form={scenarioForm}
-            toxins={toxins}
-            organisms={organisms}
-            damageCategories={damageCategories}
-            bodyLocations={bodyLocations}
-            preview={preview}
-            onChange={handleScenarioChange}
-            onPreview={previewScenario}
-            onSubmit={submitScenario}
-          />
-          <ScenarioList scenarios={scenarios} onDelete={deleteScenario} />
-          <AdminPanel
-            toxins={toxins}
-            token={token}
-            user={user}
-            onCreate={createToxin}
-            onDelete={deleteToxin}
-            onChange={handleToxinChange}
-            toxinForm={toxinForm}
-          />
+          {activeSection === "user" ? (
+            <>
+              <ScenarioForm
+                form={scenarioForm}
+                toxins={toxins}
+                organisms={organisms}
+                damageCategories={damageCategories}
+                bodyLocations={bodyLocations}
+                preview={preview}
+                error={appError}
+                onChange={handleScenarioChange}
+                onPreview={previewScenario}
+                onSubmit={submitScenario}
+              />
+              <ScenarioList scenarios={scenarios} onDelete={deleteScenario} />
+            </>
+          ) : null}
+          {user?.is_admin && activeSection === "admin" ? (
+            <AdminPanel
+              toxins={toxins}
+              token={token}
+              user={user}
+              onCreate={createToxin}
+              onDelete={deleteToxin}
+              onChange={handleToxinChange}
+              toxinForm={toxinForm}
+            />
+          ) : null}
         </main>
       )}
     </div>
