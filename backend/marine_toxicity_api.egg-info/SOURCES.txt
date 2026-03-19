@@ -25,6 +25,7 @@ app/schemas/scenario.py
 app/schemas/toxin.py
 app/services/risk.py
 app/tests/test_risk.py
+app/tests/test_security.py
 marine_toxicity_api.egg-info/PKG-INFO
 marine_toxicity_api.egg-info/SOURCES.txt
 marine_toxicity_api.egg-info/dependency_links.txt
