@@ -1,0 +1,121 @@
+---
+- name: Deploy marine-toxicity stack to VM
+  hosts: vm
+  become: true
+  gather_facts: false
+
+  vars:
+    repo_root: "{{ playbook_dir }}/../.."
+    app_dir: "/home/{{ ansible_user }}/marine-app"
+    compose_file: "{{ repo_root }}/docker-compose.prod.yml"
+    env_file: "{{ repo_root }}/.env.prod"
+    yc_key_file: "{{ repo_root }}/infra/terraform/key.json"
+    remote_yc_key_file: /root/yandex-sa-key.json
+
+  pre_tasks:
+    - name: Check that local .env.prod exists
+      ansible.builtin.stat:
+        path: "{{ env_file }}"
+      delegate_to: localhost
+      become: false
+      register: envfile_stat
+
+    - name: Fail if .env.prod is missing
+      ansible.builtin.fail:
+        msg: |
+          Локально не найден {{ env_file }}.
+          Скопируй .env.prod.example -> .env.prod и заполни REGISTRY, VM_HOST, SECRET_KEY и пароли.
+      when: not envfile_stat.stat.exists
+
+    - name: Check that local Yandex service account key exists
+      ansible.builtin.stat:
+        path: "{{ yc_key_file }}"
+      delegate_to: localhost
+      become: false
+      register: yc_key_stat
+
+    - name: Fail if Yandex service account key is missing
+      ansible.builtin.fail:
+        msg: |
+          Локально не найден {{ yc_key_file }}.
+          Создай ключ: cd infra/terraform && yc iam key create --service-account-id <id> --output key.json
+      when: not yc_key_stat.stat.exists
+
+  tasks:
+    - name: Ensure app directory exists
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Copy docker-compose.prod.yml
+      ansible.builtin.copy:
+        src: "{{ compose_file }}"
+        dest: "{{ app_dir }}/docker-compose.prod.yml"
+        mode: "0644"
+
+    - name: Copy .env to VM
+      ansible.builtin.copy:
+        src: "{{ env_file }}"
+        dest: "{{ app_dir }}/.env"
+        mode: "0600"
+
+    - name: Copy Yandex service account key to VM
+      ansible.builtin.copy:
+        src: "{{ yc_key_file }}"
+        dest: "{{ remote_yc_key_file }}"
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+
+    - name: Configure yc profile for root
+      ansible.builtin.command:
+        cmd: yc config set service-account-key "{{ remote_yc_key_file }}"
+      changed_when: false
+
+    - name: Disable Yandex Docker credential helper for root
+      ansible.builtin.copy:
+        dest: /root/.docker/config.json
+        owner: root
+        group: root
+        mode: "0600"
+        content: |
+          {}
+
+    - name: Create IAM token for Yandex Container Registry
+      ansible.builtin.command:
+        cmd: yc iam create-token
+      register: yc_iam_token
+      changed_when: false
+      no_log: true
+
+    - name: Login Docker to Yandex Container Registry
+      ansible.builtin.command:
+        cmd: docker login --username iam --password-stdin cr.yandex
+        stdin: "{{ yc_iam_token.stdout }}"
+      changed_when: false
+
+    - name: docker compose pull
+      ansible.builtin.command:
+        cmd: docker compose -f docker-compose.prod.yml pull
+        chdir: "{{ app_dir }}"
+      changed_when: true
+
+    - name: docker compose up -d
+      ansible.builtin.command:
+        cmd: docker compose -f docker-compose.prod.yml up -d
+        chdir: "{{ app_dir }}"
+      register: compose_up
+      changed_when: "'Started' in compose_up.stderr or 'Recreated' in compose_up.stderr or 'Created' in compose_up.stderr"
+
+    - name: Show running containers
+      ansible.builtin.command:
+        cmd: docker compose -f docker-compose.prod.yml ps
+        chdir: "{{ app_dir }}"
+      changed_when: false
+      register: ps_out
+
+    - name: Display ps output
+      ansible.builtin.debug:
+        var: ps_out.stdout_lines

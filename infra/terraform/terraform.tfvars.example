@@ -1,0 +1,12 @@
+service_account_key_file = "./key.json"
+
+cloud_id  = "your-cloud-id"
+folder_id = "your-folder-id"
+zone      = "ru-central1-d"
+
+vm_name             = "marine-toxicity-vm"
+ssh_user            = "ubuntu"
+ssh_public_key_path = "~/.ssh/cloud.pub"
+
+registry_name = "marine-toxicity-registry"
+preemptible   = true

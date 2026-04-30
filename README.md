@@ -73,6 +73,182 @@ cp .env.example .env
 npm run dev
 ```
 
+## Развертывание в Yandex Cloud через Terraform
+
+### 1. Подготовка Yandex Cloud (через `yc` CLI)
+
+Установите CLI: <https://yandex.cloud/docs/cli/quickstart>.
+
+Авторизуйтесь и выберите облако/каталог по умолчанию:
+
+```bash
+yc init
+```
+
+Получите идентификаторы облака и каталога — они понадобятся для `terraform.tfvars`:
+
+```bash
+yc config list
+```
+
+Создайте сервисный аккаунт для Terraform и выдайте ему права:
+
+```bash
+yc iam service-account create --name terraform-sa
+
+SA_ID=$(yc iam service-account get --name terraform-sa --format json | jq -r .id)
+FOLDER_ID=$(yc config get folder-id)
+
+for ROLE in editor vpc.admin compute.admin container-registry.admin iam.serviceAccounts.user; do
+  yc resource-manager folder add-access-binding "$FOLDER_ID" \
+    --role "$ROLE" \
+    --subject "serviceAccount:$SA_ID"
+done
+```
+
+Сгенерируйте авторизованный ключ — Terraform читает его через переменную `service_account_key_file`:
+
+```bash
+cd infra/terraform
+yc iam key create \
+  --service-account-id "$SA_ID" \
+  --output key.json
+```
+
+Файл [`key.json`](infra/terraform/key.json) содержит приватный ключ и в репозиторий не коммитится (см. [.gitignore](.gitignore)).
+
+Проверьте, что у вас есть SSH-ключ для входа на ВМ; иначе создайте:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519
+```
+
+### 2. Конфигурация Terraform
+
+```bash
+cd infra/terraform
+cp terraform.tfvars.example terraform.tfvars
+```
+
+В [`terraform.tfvars`](infra/terraform/terraform.tfvars.example) укажите минимум:
+
+```hcl
+service_account_key_file = "./key.json"
+cloud_id                 = "<cloud-id из yc config list>"
+folder_id                = "<folder-id из yc config list>"
+ssh_public_key_path      = "~/.ssh/id_ed25519.pub"
+```
+
+При необходимости можно переопределить `vm_cores`, `vm_memory`, `vm_disk_size`, `registry_name`, `preemptible` — все переменные описаны в [variables.tf](infra/terraform/variables.tf).
+
+### 3. Применение
+
+```bash
+terraform init
+terraform plan
+terraform apply
+```
+
+После успешного `apply` Terraform выведет:
+
+- `vm_external_ip` — публичный IP виртуалки
+- `ssh_command` — готовая команда для подключения по SSH
+- `registry_id` и `registry_endpoint` — для пуша образов в формате `cr.yandex/<registry_id>/<image>:<tag>`
+
+### 4. Удаление
+
+```bash
+terraform destroy
+```
+
+## Быстрая шпаргалка через Makefile
+
+После того как Yandex Cloud настроен, инфра поднята и `.env.prod` заполнен — весь цикл укладывается в несколько `make`-команд:
+
+```bash
+make tf-apply
+make env
+make bootstrap
+make push
+make deploy
+
+make up           # = push + deploy
+
+make ps
+make logs
+make ssh
+make tf-destroy
+```
+
+Все цели описаны в [Makefile](Makefile), переменные `REGISTRY` и `VM_IP` читаются автоматически из `terraform output`.
+
+## Установка Docker на ВМ через Ansible
+
+Плейбук [infra/ansible/playbook.yml](infra/ansible/playbook.yml) ставит на ВМ Docker Engine, Compose-плагин и Yandex Cloud CLI. Во время deploy плейбук [infra/ansible/deploy.yml](infra/ansible/deploy.yml) выполняет `docker login` в `cr.yandex` через IAM token сервисного аккаунта.
+
+### 1. Подготовить inventory
+
+```bash
+cd infra/ansible
+cp inventory.ini.example inventory.ini
+
+VM_IP=$(cd ../terraform && terraform output -raw vm_external_ip)
+sed -i '' "s/<VM_EXTERNAL_IP>/$VM_IP/" inventory.ini
+```
+
+В [inventory.ini](infra/ansible/inventory.ini.example) проверь, что `ansible_ssh_private_key_file` указывает на приватный ключ, парный `ssh_public_key_path` из `terraform.tfvars`.
+
+### 2. Запуск
+
+```bash
+ansible-playbook playbook.yml
+```
+
+## Сборка и публикация образов в Yandex Container Registry
+
+Образы собираем локально и пушим в реестр.
+
+### Build & push
+
+```bash
+make push
+```
+
+Проверить, что образы появились в реестре:
+
+```bash
+yc container image list --registry-id $(cd infra/terraform && terraform output -raw registry_id)
+```
+
+## Запуск стека на ВМ через Ansible
+
+Деплой описан в [infra/ansible/deploy.yml](infra/ansible/deploy.yml): он копирует на ВМ [docker-compose.prod.yml](docker-compose.prod.yml) и локальный `.env.prod` (как `.env`) в `/home/ubuntu/marine-app/`, после чего делает `docker compose pull` и `up -d`.
+
+### 1. Подготовить `.env.prod`
+
+```bash
+make env
+```
+
+### 2. Запустить деплой
+
+```bash
+make deploy
+```
+
+### Доступы
+
+- frontend: `http://<vm_external_ip>:5173`
+- backend:  `http://<vm_external_ip>:8000`
+- swagger:  `http://<vm_external_ip>:8000/docs`
+
+### Логи и статус
+
+```bash
+make ps
+make logs
+```
+
 ## Основные endpoint'ы
 
 ### Auth
