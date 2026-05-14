@@ -86,21 +86,29 @@ jobs:
       - backend-build
       - frontend-build
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/lab3')
+    env:
+      YC_SA_JSON: ${{ secrets.YC_SA_JSON }}
+      YC_REGISTRY_ID: ${{ secrets.YC_REGISTRY_ID }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check registry secrets
+        run: |
+          test -n "$YC_SA_JSON" || { echo "YC_SA_JSON secret is not set"; exit 1; }
+          test -n "$YC_REGISTRY_ID" || { echo "YC_REGISTRY_ID secret is not set"; exit 1; }
+
       - name: Log in to Yandex Container Registry
         run: |
-          printf '%s' '${{ secrets.YC_SA_JSON }}' | docker login --username json_key --password-stdin cr.yandex
+          printf '%s' "$YC_SA_JSON" | docker login --username json_key --password-stdin cr.yandex
 
       - name: Build backend image
         run: |
           docker build \
-            -t cr.yandex/${{ secrets.YC_REGISTRY_ID }}/marine-toxicity-backend:${{ github.sha }} \
-            -t cr.yandex/${{ secrets.YC_REGISTRY_ID }}/marine-toxicity-backend:latest \
+            -t cr.yandex/$YC_REGISTRY_ID/marine-toxicity-backend:${{ github.sha }} \
+            -t cr.yandex/$YC_REGISTRY_ID/marine-toxicity-backend:latest \
             backend
 
       - name: Push backend image
         run: |
-          docker push cr.yandex/${{ secrets.YC_REGISTRY_ID }}/marine-toxicity-backend:${{ github.sha }}
-          docker push cr.yandex/${{ secrets.YC_REGISTRY_ID }}/marine-toxicity-backend:latest
+          docker push cr.yandex/$YC_REGISTRY_ID/marine-toxicity-backend:${{ github.sha }}
+          docker push cr.yandex/$YC_REGISTRY_ID/marine-toxicity-backend:latest
