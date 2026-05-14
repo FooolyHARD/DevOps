@@ -64,3 +64,51 @@ yc container registry delete itmo-lab3-registry
 yc vpc subnet delete itmo-lab3-subnet-a
 yc vpc network delete itmo-lab3-network
 ```
+
+## Срочное рекавери на случай если Даша снесла все ресурсы
+```bash 
+git switch lab3
+yc config profile activate lab3-sa
+
+yc vpc network create --name itmo-lab3-network
+
+yc vpc subnet create \
+  --name itmo-lab3-subnet-a \
+  --network-name itmo-lab3-network \
+  --zone ru-central1-a \
+  --range 10.30.0.0/24
+
+yc managed-kubernetes cluster create itmo-lab3-cluster \
+  --network-name itmo-lab3-network \
+  --zone ru-central1-a \
+  --subnet-name itmo-lab3-subnet-a \
+  --public-ip \
+  --release-channel regular \
+  --service-account-id ajedlm283uobuucdfski \
+  --node-service-account-id ajedlm283uobuucdfski \
+  --cluster-ipv4-range 10.112.0.0/16 \
+  --service-ipv4-range 10.96.0.0/16
+
+yc managed-kubernetes node-group create itmo-lab3-nodes \
+  --cluster-name itmo-lab3-cluster \
+  --platform standard-v3 \
+  --cores 2 \
+  --memory 4G \
+  --core-fraction 20 \
+  --disk-type network-hdd \
+  --disk-size 40G \
+  --fixed-size 1 \
+  --preemptible \
+  --container-runtime containerd \
+  --network-interface subnets=itmo-lab3-subnet-a,ipv4-address=nat
+
+yc managed-kubernetes cluster get-credentials itmo-lab3-cluster --external --force
+
+kubectl apply -f lab3/k8s/app.yaml
+kubectl apply -f lab3/k8s/monitoring.yaml
+
+kubectl delete job backend-cpu-load -n lab3 --ignore-not-found
+kubectl apply -f lab3/k8s/load-test.yaml
+kubectl get hpa,pods -n lab3 -w
+
+```
