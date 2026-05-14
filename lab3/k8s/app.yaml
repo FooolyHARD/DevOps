@@ -161,7 +161,7 @@ metadata:
   name: backend
   namespace: lab3
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: backend
   ports:
@@ -193,7 +193,7 @@ spec:
               containerPort: 5173
           env:
             - name: VITE_API_URL
-              value: http://103.76.55.205/api/v1
+              value: http://localhost:8000/api/v1
           resources:
             requests:
               cpu: 50m
@@ -214,14 +214,13 @@ metadata:
   name: frontend
   namespace: lab3
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: frontend
   ports:
     - name: http
       port: 80
       targetPort: http
-      nodePort: 30813
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler

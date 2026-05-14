@@ -4,9 +4,22 @@ Cloud: Yandex Cloud
 Registry: `cr.yandex/crp17lc6pgst1e690e9c`  
 Cluster: `itmo-lab3-cluster`
 
-Backend URL: `http://103.76.55.205/health`  
-Frontend URL: `http://158.160.34.89:30813`  
-Grafana URL: `http://111.88.150.105`  
+Lab 3 is configured to run without extra public IP addresses for backend, frontend, and Grafana. Use port-forwarding:
+
+```bash
+kubectl port-forward -n lab3 svc/backend 8000:80
+kubectl port-forward -n lab3 svc/frontend 5173:80
+kubectl port-forward -n monitoring svc/grafana 3000:80
+```
+
+URLs:
+
+```text
+Backend:  http://localhost:8000/health
+Frontend: http://localhost:5173
+Grafana:  http://localhost:3000
+```
+
 Grafana login: `admin` / `admin12345`
 
 ## Build and push backend image
@@ -60,7 +73,9 @@ YC_REGISTRY_ID=crp17lc6pgst1e690e9c
 ```bash
 kubectl delete namespace lab3 monitoring
 yc managed-kubernetes cluster delete itmo-lab3-cluster
-yc container registry delete itmo-lab3-registry
+yc vpc subnet update itmo-lab3-subnet-a --disassociate-route-table
+yc vpc route-table delete itmo-lab3-nat-routes
+yc vpc gateway delete itmo-lab3-nat-gateway
 yc vpc subnet delete itmo-lab3-subnet-a
 yc vpc network delete itmo-lab3-network
 ```
@@ -77,6 +92,17 @@ yc vpc subnet create \
   --network-name itmo-lab3-network \
   --zone ru-central1-a \
   --range 10.30.0.0/24
+
+yc vpc gateway create --name itmo-lab3-nat-gateway
+
+yc vpc route-table create \
+  --name itmo-lab3-nat-routes \
+  --network-name itmo-lab3-network \
+  --route destination=0.0.0.0/0,gateway-name=itmo-lab3-nat-gateway
+
+yc vpc subnet update \
+  itmo-lab3-subnet-a \
+  --route-table-name itmo-lab3-nat-routes
 
 yc managed-kubernetes cluster create itmo-lab3-cluster \
   --network-name itmo-lab3-network \
@@ -100,7 +126,7 @@ yc managed-kubernetes node-group create itmo-lab3-nodes \
   --fixed-size 1 \
   --preemptible \
   --container-runtime containerd \
-  --network-interface subnets=itmo-lab3-subnet-a,ipv4-address=nat
+  --network-interface subnets=itmo-lab3-subnet-a,ipv4-address=auto
 
 yc managed-kubernetes cluster get-credentials itmo-lab3-cluster --external --force
 

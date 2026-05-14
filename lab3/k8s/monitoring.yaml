@@ -283,7 +283,7 @@ metadata:
   name: grafana
   namespace: monitoring
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: grafana
   ports:
