@@ -3,6 +3,7 @@ import logging
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from starlette.responses import Response
 
 from app.api import admin, auth, health, reference, scenarios, toxins
@@ -52,3 +53,5 @@ app.include_router(reference.router, prefix=settings.api_v1_prefix)
 app.include_router(toxins.router, prefix=settings.api_v1_prefix)
 app.include_router(admin.router, prefix=settings.api_v1_prefix)
 app.include_router(scenarios.router, prefix=settings.api_v1_prefix)
+
+Instrumentator().instrument(app).expose(app)

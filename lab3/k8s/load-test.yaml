@@ -1,0 +1,24 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: backend-cpu-load
+  namespace: lab3
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: fortio
+          image: fortio/fortio:1.70.0
+          args:
+            - load
+            - -qps
+            - "0"
+            - -c
+            - "12"
+            - -timeout
+            - 30s
+            - -t
+            - 5m
+            - http://backend.lab3.svc.cluster.local/load/cpu?work=800000
