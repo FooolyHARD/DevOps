@@ -58,7 +58,7 @@ describe("App", () => {
     render(<App />);
 
     await waitFor(() => expect(apiMock.me).toHaveBeenCalled());
-    expect(screen.getByText("Администратор")).toBeInTheDocument();
+    expect(await screen.findByText("Администратор")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Админ-панель" }));
     expect(await screen.findByText("Справочник токсинов")).toBeInTheDocument();
