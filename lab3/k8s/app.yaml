@@ -193,7 +193,7 @@ spec:
               containerPort: 5173
           env:
             - name: VITE_API_URL
-              value: http://localhost:8000/api/v1
+              value: /api/v1
           resources:
             requests:
               cpu: 50m
@@ -217,6 +217,97 @@ spec:
   type: ClusterIP
   selector:
     app: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edge-nginx-config
+  namespace: lab3
+data:
+  default.conf: |
+    server {
+      listen 80;
+
+      location /api/ {
+        proxy_pass http://backend.lab3.svc.cluster.local;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+      }
+
+      location /health {
+        proxy_pass http://backend.lab3.svc.cluster.local;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+      }
+
+      location / {
+        proxy_pass http://frontend.lab3.svc.cluster.local;
+        proxy_set_header Host localhost:5173;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge
+  namespace: lab3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge
+  template:
+    metadata:
+      labels:
+        app: edge
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - name: http
+              containerPort: 80
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: config
+          configMap:
+            name: edge-nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge
+  namespace: lab3
+spec:
+  type: LoadBalancer
+  selector:
+    app: edge
   ports:
     - name: http
       port: 80
