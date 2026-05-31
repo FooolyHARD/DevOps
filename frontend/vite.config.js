@@ -13,7 +13,7 @@ export default defineConfig({
     css: true,
     globals: true,
     coverage: {
-      reporter: ["text", "html", "json"],
+      reporter: ["text", "html", "json", "lcov"],
       lines: 90,
       statements: 90,
       functions: 90,

@@ -1,0 +1,173 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: security
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sonarqube-postgres-secret
+  namespace: security
+type: Opaque
+stringData:
+  postgres-password: sonarqube
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sonarqube-postgres-data
+  namespace: security
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarqube-postgres
+  namespace: security
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sonarqube-postgres
+  template:
+    metadata:
+      labels:
+        app: sonarqube-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: sonarqube
+            - name: POSTGRES_USER
+              value: sonarqube
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sonarqube-postgres-secret
+                  key: postgres-password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "sonarqube", "-d", "sonarqube"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: sonarqube-postgres-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonarqube-postgres
+  namespace: security
+spec:
+  selector:
+    app: sonarqube-postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sonarqube-data
+  namespace: security
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarqube
+  namespace: security
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sonarqube
+  template:
+    metadata:
+      labels:
+        app: sonarqube
+    spec:
+      initContainers:
+        - name: init-sysctl
+          image: busybox:1.37
+          securityContext:
+            privileged: true
+          command:
+            - sh
+            - -c
+            - sysctl -w vm.max_map_count=524288 && sysctl -w fs.file-max=131072
+      containers:
+        - name: sonarqube
+          image: sonarqube:10.7-community
+          ports:
+            - name: http
+              containerPort: 9000
+          env:
+            - name: SONAR_JDBC_URL
+              value: jdbc:postgresql://sonarqube-postgres.security.svc.cluster.local:5432/sonarqube
+            - name: SONAR_JDBC_USERNAME
+              value: sonarqube
+            - name: SONAR_JDBC_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sonarqube-postgres-secret
+                  key: postgres-password
+            - name: SONAR_WEB_CONTEXT
+              value: /sonar
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          readinessProbe:
+            httpGet:
+              path: /sonar/api/system/status
+              port: http
+            initialDelaySeconds: 90
+            periodSeconds: 15
+            failureThreshold: 20
+          volumeMounts:
+            - name: data
+              mountPath: /opt/sonarqube/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: sonarqube-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonarqube
+  namespace: security
+spec:
+  type: ClusterIP
+  selector:
+    app: sonarqube
+  ports:
+    - name: http
+      port: 9000
+      targetPort: http

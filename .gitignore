@@ -9,7 +9,10 @@ dist/
 .env.prod
 .docker-build/
 backend/.coverage
+backend/coverage.xml
 frontend/.env
+frontend/coverage/lcov.info
+frontend/coverage/lcov-report/
 .ansible/
 infra/ansible/inventory.ini
 infra/terraform/.terraform/
