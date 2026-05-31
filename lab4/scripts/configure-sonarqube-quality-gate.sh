@@ -6,6 +6,7 @@ SONAR_TOKEN="${SONAR_TOKEN:-}"
 PROJECT_KEY="${PROJECT_KEY:-marine-toxicity-devops}"
 GATE_NAME="${GATE_NAME:-Lab4 Security Gate}"
 GATE_NAME_ENCODED="$(jq -nr --arg value "$GATE_NAME" '$value | @uri')"
+PROJECT_NAME="${PROJECT_NAME:-Marine Toxicity DevOps}"
 
 if [ -z "$SONAR_HOST_URL" ] || [ -z "$SONAR_TOKEN" ]; then
   echo "SONAR_HOST_URL and SONAR_TOKEN are required"
@@ -25,6 +26,12 @@ GATE_ID="$(sonar_api GET "/api/qualitygates/list" \
 
 if [ -z "$GATE_ID" ]; then
   GATE_ID="$(sonar_api POST "/api/qualitygates/create" --data-urlencode "name=${GATE_NAME}" | jq -r '.id')"
+fi
+
+if ! sonar_api GET "/api/projects/search?projects=${PROJECT_KEY}" | jq -e '.components | length > 0' >/dev/null; then
+  sonar_api POST "/api/projects/create" \
+    --data-urlencode "project=${PROJECT_KEY}" \
+    --data-urlencode "name=${PROJECT_NAME}" >/dev/null
 fi
 
 add_condition() {
