@@ -60,7 +60,7 @@ describe("App", () => {
     await waitFor(() => expect(apiMock.me).toHaveBeenCalled());
     expect(await screen.findByText("Администратор")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Админ-панель" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Админ-панель" }));
     expect(await screen.findByText("Справочник токсинов")).toBeInTheDocument();
   });
 
@@ -131,7 +131,7 @@ describe("App", () => {
     render(<App />);
 
     await waitFor(() => expect(apiMock.me).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole("button", { name: "Админ-панель" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Админ-панель" }));
 
     fireEvent.change(screen.getByLabelText("Название"), { target: { value: "Тестовый токсин" } });
     fireEvent.change(screen.getByLabelText("Нейротоксичность"), { target: { value: "6" } });
@@ -249,7 +249,7 @@ describe("App", () => {
     render(<App />);
 
     await waitFor(() => expect(apiMock.me).toHaveBeenCalled());
-    fireEvent.click(screen.getByRole("button", { name: "Админ-панель" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Админ-панель" }));
     fireEvent.change(screen.getByLabelText("Название"), { target: { value: "Тестовый токсин" } });
     fireEvent.submit(screen.getByRole("button", { name: "Добавить токсин" }).closest("form"));
     fireEvent.click(screen.getByRole("button", { name: "Пользователь" }));
