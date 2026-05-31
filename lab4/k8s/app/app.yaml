@@ -137,7 +137,7 @@ spec:
           resources:
             requests:
               cpu: 50m
-              memory: 256Mi
+              memory: 96Mi
             limits:
               cpu: 500m
               memory: 512Mi
@@ -338,6 +338,13 @@ spec:
     name: backend
   minReplicas: 1
   maxReplicas: 5
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 60
   metrics:
     - type: Resource
       resource:
