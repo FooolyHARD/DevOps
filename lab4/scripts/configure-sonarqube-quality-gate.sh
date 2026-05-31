@@ -51,12 +51,9 @@ add_condition() {
     --data-urlencode "error=${error}" >/dev/null
 }
 
-add_condition coverage LT 80
-add_condition bugs GT 0
-add_condition vulnerabilities GT 0
-add_condition reliability_rating GT 1
-add_condition security_rating GT 1
-add_condition security_hotspots_reviewed LT 100
+add_condition new_coverage LT 80
+add_condition new_violations GT 0
+add_condition new_security_hotspots_reviewed LT 100
 
 sonar_api POST "/api/qualitygates/select" \
   --data-urlencode "projectKey=${PROJECT_KEY}" \

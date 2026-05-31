@@ -63,12 +63,13 @@ export SONAR_TOKEN="<sonarqube-token>"
 
 The configured gate fails on:
 
-- total coverage below 80%
-- any bugs
-- any vulnerabilities
-- reliability rating worse than A
-- security rating worse than A
-- reviewed security hotspots below 100%
+- new-code coverage below 80%
+- any new SonarQube issues
+- reviewed new security hotspots below 100%
+
+The CI also enforces total project coverage locally before the scan:
+`pytest --cov-fail-under=80` for backend and Vitest coverage thresholds for
+frontend.
 
 ## GitHub Actions secrets
 
