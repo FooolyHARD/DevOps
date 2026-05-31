@@ -23,6 +23,13 @@ same shape as Lab 3:
 SonarQube is exposed through the app edge as `/sonar`, so it does not consume a
 third LoadBalancer.
 
+Current deployment:
+
+- Application: <http://158.160.244.137>
+- Backend health: <http://158.160.244.137/health>
+- SonarQube: <http://158.160.244.137/sonar/>
+- Grafana: <http://158.160.138.136>
+
 ```bash
 APP_IP=$(kubectl get svc edge -n lab3 -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 GRAFANA_IP=$(kubectl get svc grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
@@ -81,6 +88,9 @@ SONAR_TOKEN=<sonarqube-token>
 TELEGRAM_BOT_TOKEN=<telegram-bot-token>
 TELEGRAM_CHAT_ID=<telegram-chat-id>
 ```
+
+The CI workflow skips Telegram delivery when `TELEGRAM_BOT_TOKEN` or
+`TELEGRAM_CHAT_ID` is absent. Add both secrets to enable real bot messages.
 
 ## CI/CD flow
 
