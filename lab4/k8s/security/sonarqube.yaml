@@ -61,6 +61,13 @@ spec:
               command: ["pg_isready", "-U", "sonarqube", "-d", "sonarqube"]
             initialDelaySeconds: 10
             periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
@@ -138,11 +145,11 @@ spec:
               value: /sonar
           resources:
             requests:
-              cpu: 500m
-              memory: 2Gi
+              cpu: 300m
+              memory: 1536Mi
             limits:
               cpu: "2"
-              memory: 4Gi
+              memory: 3Gi
           readinessProbe:
             httpGet:
               path: /sonar/api/system/status
