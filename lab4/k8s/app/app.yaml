@@ -101,7 +101,6 @@ metadata:
   name: backend
   namespace: lab3
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: backend
