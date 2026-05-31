@@ -283,6 +283,8 @@ spec:
     metadata:
       labels:
         app: edge
+      annotations:
+        lab4.devops/config-revision: sonar-route-v1
     spec:
       containers:
         - name: nginx
