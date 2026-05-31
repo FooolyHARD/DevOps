@@ -20,12 +20,11 @@ sonar_api() {
   curl -fsS -u "${SONAR_TOKEN}:" -X "$method" "${SONAR_HOST_URL}${path}" "$@"
 }
 
-GATE_ID="$(sonar_api GET "/api/qualitygates/list" \
-  | jq -r --arg name "$GATE_NAME" '.qualitygates[] | select(.name == $name) | .id' \
-  | head -1)"
+GATE_EXISTS="$(sonar_api GET "/api/qualitygates/list" \
+  | jq -r --arg name "$GATE_NAME" 'any(.qualitygates[]; .name == $name)')"
 
-if [ -z "$GATE_ID" ]; then
-  GATE_ID="$(sonar_api POST "/api/qualitygates/create" --data-urlencode "name=${GATE_NAME}" | jq -r '.id')"
+if [ "$GATE_EXISTS" != "true" ]; then
+  sonar_api POST "/api/qualitygates/create" --data-urlencode "name=${GATE_NAME}" >/dev/null
 fi
 
 if ! sonar_api GET "/api/projects/search?projects=${PROJECT_KEY}" | jq -e '.components | length > 0' >/dev/null; then
@@ -45,7 +44,7 @@ add_condition() {
   fi
 
   sonar_api POST "/api/qualitygates/create_condition" \
-    --data-urlencode "gateId=${GATE_ID}" \
+    --data-urlencode "gateName=${GATE_NAME}" \
     --data-urlencode "metric=${metric}" \
     --data-urlencode "op=${op}" \
     --data-urlencode "error=${error}" >/dev/null
@@ -57,6 +56,6 @@ add_condition new_security_hotspots_reviewed LT 100
 
 sonar_api POST "/api/qualitygates/select" \
   --data-urlencode "projectKey=${PROJECT_KEY}" \
-  --data-urlencode "gateId=${GATE_ID}" >/dev/null
+  --data-urlencode "gateName=${GATE_NAME}" >/dev/null
 
 echo "Quality gate '${GATE_NAME}' is assigned to project '${PROJECT_KEY}'."
