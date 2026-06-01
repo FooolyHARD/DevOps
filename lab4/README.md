@@ -112,3 +112,31 @@ kubectl get svc,pods,hpa -n lab3
 kubectl get pods -n security
 kubectl get pods -n argocd
 ```
+
+## тестики
+
+```bash
+gh run list --repo FooolyHARD/DevOps --branch lab4 --limit 3
+git switch lab4
+git commit --allow-empty -m "chore(lab4): verify telegram notification"
+git push origin lab4
+
+gh run watch --repo FooolyHARD/DevOps $(gh run list --repo FooolyHARD/DevOps --branch lab4 --limit 1 --json databaseId -q '.[0].databaseId') --exit-status
+
+http://158.160.244.137/sonar/
+
+kubectl get applications -n argocd -o wide
+
+kubectl get pods -n lab3
+kubectl get pods -n security
+kubectl get hpa backend -n lab3
+
+curl http://158.160.244.137/health
+curl -I http://158.160.244.137/
+curl -I http://158.160.244.137/sonar/
+curl -I http://158.160.138.136/login
+
+git pull --ff-only
+rg -n "marine-toxicity-(backend|frontend):" lab4/k8s/app/app.yaml
+kubectl get deploy -n lab3 -o=jsonpath='{range .items[*]}{.metadata.name}{"\t"}{range .spec.template.spec.containers[*]}{.image}{" "}{end}{"\n"}{end}'
+```
