@@ -115,7 +115,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: cr.yandex/crp17lc6pgst1e690e9c/marine-toxicity-backend:f0ac76e0ff76a0eed56b88cfd738ded7050c1038
+          image: cr.yandex/crp17lc6pgst1e690e9c/marine-toxicity-backend:154f649a4935cb7061b44cdb73f336f616d0fcae
           imagePullPolicy: Always
           ports:
             - name: http
@@ -185,7 +185,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: cr.yandex/crp17lc6pgst1e690e9c/marine-toxicity-frontend:f0ac76e0ff76a0eed56b88cfd738ded7050c1038
+          image: cr.yandex/crp17lc6pgst1e690e9c/marine-toxicity-frontend:154f649a4935cb7061b44cdb73f336f616d0fcae
           imagePullPolicy: Always
           ports:
             - name: http
